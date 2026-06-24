@@ -1,5 +1,5 @@
 FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
-COPY build/libs/*.jar mvest-order.jar
-EXPOSE 9001
-CMD ["java", "-jar", "mvest-order.jar"]
+COPY build/libs/*.jar stress.jar
+EXPOSE 8080
+CMD ["java", "-jar", "stress.jar"]

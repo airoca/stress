@@ -12,6 +12,9 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      IMAGE_NAME: stress
+
     steps:
       # 1. 소스 코드 가져오기
       - name: Checkout code
@@ -30,23 +33,20 @@ jobs:
           chmod +x ./gradlew
           ./gradlew clean build -x test
 
-      # 4. 도커 허브 로그인 (비밀번호 사용)
+      # 4. Docker Hub 로그인
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }} # 여기에 비밀번호가 대입됩니다.
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      # 5. 도커 이미지 빌드 및 푸시
+      # 5. Docker 이미지 빌드 및 푸시
       - name: Build and Push Docker Image
         run: |
-          # 저장소 이름을 소문자로 변환 (도커 허브 필수 조건)
-          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
-          
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME:latest .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME:latest
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
-      # 6. EC2에 SSH 접속 후 배포 진행
+      # 6. EC2 배포
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -54,17 +54,15 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
-            
-            # 도커 허브에서 최신 이미지 가져오기
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME:latest
-            
-            # 기존에 실행 중인 컨테이너 종료 및 삭제
-            sudo docker stop $REPO_NAME || true
-            sudo docker rm $REPO_NAME || true
-            
-            # 새 컨테이너 실행 (외부 80포트 -> 스프링 8080포트)
-            sudo docker run -d -p 80:8080 --name $REPO_NAME ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME:latest
-            
-            # 미사용 이미지 정리 (용량 확보)
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+            sudo docker stop ${{ env.IMAGE_NAME }} || true
+            sudo docker rm ${{ env.IMAGE_NAME }} || true
+
+            sudo docker run -d \
+              --name ${{ env.IMAGE_NAME }} \
+              -p 80:8080 \
+              --restart unless-stopped \
+              ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
             sudo docker image prune -f
