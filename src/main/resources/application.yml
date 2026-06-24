@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:mysql://stress-db.cja2scemcsbf.ap-northeast-2.rds.amazonaws.com:3306/stress
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: rj7783208232
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
