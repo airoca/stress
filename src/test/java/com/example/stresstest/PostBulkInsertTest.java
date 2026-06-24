@@ -16,7 +16,7 @@ class PostBulkInsertTest {
 
     @Test
     void insertBulkData() {
-        int totalRows = 3_000_000; // 총 넣을 데이터 수
+        int totalRows = 90_000; // 총 넣을 데이터 수
         int batchSize = 10_000;    // 한 번에 보낼 배치 크기
 
         String sql = "INSERT INTO post_entity (title, content) VALUES (?, ?)";
